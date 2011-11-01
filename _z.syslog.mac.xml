@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="24">
+<Routine name="%z.syslog" type="MAC" languagemode="0"><![CDATA[
+ #; store
+ #; global:name
+ #; file:name
+ #; empty output to console 
+ #; polltime number of seconds between polling 
+ #;    undef 1 pass
+ #; limittime number of seconds to do polling
+ #;   undef forever.
+ #include %occErrors
+relog(store,polltime,limittime)
+ #; output to console
+ if $G(store)="" { S storetype="" }
+ else  {
+	S storetype=$P(store,":")
+    S store=$E(store,$L(storetype)+2,$L(store))
+    if storetype="file" {
+	   #; if file doesn't not exists create it (hint open in A append mode)
+	   if '##class(%Library.File).Exists(store) { B  O store:("NWSA"):1 }
+	   else {  O store:("WSA"):1 }
+	   I '$T Q $$Error^%apiOBJ($$$GeneralError,"error open file "_store) 
+	   U store  
+    }    
+ }   
+ #; get logtab offset
+ #; "S" means transform offset based on mcom
+ S plogtab=$V($zu(40,2,39),-2,"S")
+ #; m_uint4 tabsize and tabindex
+ S logtabsize=$V(plogtab,-3,4)
+ S logstrsize=$zu(40,0,16)
+ S plogstr=plogtab+8
+ S charsize=$zu(40,0,70)
+ S cast="" I charsize=2 S cast="w"
+ S logtabindexOld=""
+ S logtabindex=$V(plogtab+4,-3,4)
+ I logtabindex>logtabsize S logtabindexOld=logtabindex-logtabsize+1
+ S zhstart=$zh
+ for  {
+   S logtabindex=$V(plogtab+4,-3,4)
+   S logtabsize=$V(plogtab,-3,4)
+   #; zsyslog index = (slogtab->hdr.logtabindex++) % slogtab->hdr.logtabsize;
+   if logtabindexOld+1'=logtabindex D scan(+logtabindexOld+1,logtabindex-1)
+   S logtabindexOld=logtabindex-1
+   I $D(timelimit) I $zh>zhstart Q  
+   I '$D(polltime) Q 
+   H polltime
+ }
+ if $G(storetype)="file" { C store }   
+ Q 1
+scan(logi1,logi2)
+ 
+ S idlog=logi1
+ S logi1=logi1#logtabsize
+ S logi2=logi2#logtabsize
+ 
+ I logi2<logi1 for i=logi1:1:logtabsize-1 { D log(i,idlog) S idlog=idlog+1 } S logi1=0 
+ for i=logi1:1:logi2 { D log(i,idlog) S idlog=idlog+1 }
+ Q 
+
+log(index,idlog)
+ 
+ S offset=plogstr+(logstrsize*i)
+ S err=$V(offset+$zu(40,31,1),-3,4)
+ S pid=$V(offset+$zu(40,31,2),-3,4 /* size of pidtype $zu(40,0,77)*/)
+ S time=$V(offset+$zu(40,31,3),-3,$zu(40,0,55) /* size of time_t*/)
+ S mod=$V(offset+$zu(40,31,4),-3,4)
+ 
+ S len=$V(offset+$zu(40,31,5),-3,charsize)
+ S cosloc=$V(offset+$zu(40,31,5)+charsize,-3,"-"_len_cast)
+ 
+ S len=$V(offset+$zu(40,31,10),-3,charsize)
+ S ns=$V(offset+$zu(40,31,10)+charsize,-3,"-"_len_cast)
+ 
+ S len=$V(offset+$zu(40,31,6),-3,charsize)
+ S client=$V(offset+$zu(40,31,6)+charsize,-3,"-"_len_cast)
+ S len=$V(offset+$zu(40,31,7),-3,charsize)
+ S ip=$V(offset+$zu(40,31,7)+charsize,-3,"-"_len_cast)
+ S len=$V(offset+$zu(40,31,8),-3,charsize)
+ S user=$V(offset+$zu(40,31,8)+charsize,-3,"-"_len_cast)
+ S len=$V(offset+$zu(40,31,9),-3,charsize)
+ S exe=$V(offset+$zu(40,31,9)+charsize,-3,"-"_len_cast)
+ 
+ #; where to put syslog entry append to file or put in global 
+ if storetype="file"||(storetype="" ) {
+   W idlog,",",err,",",pid,",",$zdt($zu(99,0,time),3),",",mod\65536,",",mod#65536,",",ns,",",cosloc,",",client,":",ip,":",user,":",exe,!
+ }
+ elseif storetype="global" {  
+   S id=$I(@store)
+   S logdata=$LB(idlog,err,pid,time,mod,ns,cosloc,client,ip,user,exe)
+   S @store@(id)=logdata
+ }  
+ Q
+
+]]></Routine>
+</Export>
