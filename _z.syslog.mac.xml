@@ -33,7 +33,7 @@ relog(store,polltime,limittime)
  S plogstr=plogtab+8
  S charsize=$zu(40,0,70)
  S cast="" I charsize=2 S cast="w"
- S logtabindexOld=""
+ S logtabindexOld=-1
  S logtabindex=$V(plogtab+4,-3,4)
  I logtabindex>logtabsize S logtabindexOld=logtabindex-logtabsize+1
  S zhstart=$zh
@@ -93,7 +93,7 @@ log(index,idlog)
  }
  elseif storetype="global" {  
    S id=$I(@store)
-   S logdata=$LB(idlog,err,pid,time,mod,ns,cosloc,client,ip,user,exe)
+   S logdata=$LB(idlog,err,pid,time,mod\65536,mod#65536,ns,cosloc,client,ip,user,exe)
    S @store@(id)=logdata
  }  
  Q
