@@ -7,7 +7,7 @@ it might be desirable to hold this info during longer time than overwriting star
 as COS job command for example SYSTEM^%ZSTART or as system task.
 ```
 SYSTEM^%ZSTART
- D relog^%z.syslog("file:"_$zu(12)_"sys.log",1)
+ J relog^%z.syslog("file:"_$zu(12)_"sys.log",1)
 ```
 
 For details see comment before routine label.<br/>
