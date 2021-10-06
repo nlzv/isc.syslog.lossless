@@ -14,7 +14,7 @@ SYSTEM^%ZSTART
 For details see comment before routine label.<br/>
 It is expected to load it and compile into %SYS namespace.<br/>
 
-
+This function appeared in isc_stat package.
 
 
 
